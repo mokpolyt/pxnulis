@@ -58,21 +58,19 @@ button{cursor:pointer;border:0;font:inherit}
 }
 .openext:hover{color:var(--cream);border-color:var(--gold)}
 
-.credbar{
-  display:none;align-items:center;gap:10px;flex-wrap:wrap;
-  padding:10px 18px;font-size:12px;color:var(--muted);
-  background:#5a3c1c22;border-bottom:1px solid var(--line);
-}
-.credbar.show{display:flex}
-.credbar b{color:var(--cream)}
-.credbar .copy{
-  padding:5px 9px;border-radius:7px;background:#4a352133;color:var(--cream);
-  border:1px solid var(--line);font-size:11px;
-}
-.credbar .copy:hover{filter:brightness(1.15)}
-
 .frame-wrap{height:calc(100vh - 68px);width:100%}
-.frame-wrap.has-cred{height:calc(100vh - 68px - 44px)}
+
+.gate{
+  height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:20px;text-align:center;
+}
+.gate h2{margin:0;color:var(--cream);font-size:20px;font-weight:650}
+.gate p{margin:0;color:var(--muted);font-size:13px;max-width:300px}
+.gate form{display:flex;flex-direction:column;gap:10px;width:100%;max-width:260px}
+.gate input{padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--cream);outline:none;font-size:14px}
+.gate input:focus{border-color:var(--gold)}
+.gate .unlock{padding:11px 13px;border-radius:10px;background:linear-gradient(130deg,var(--gold2),var(--gold));color:#271809;font-weight:750}
+.gate .err{color:#f18b71;font-size:12px;min-height:16px}
 iframe{width:100%;height:100%;border:0;display:block;background:var(--panel)}
 
 .placeholder{
@@ -97,16 +95,10 @@ iframe{width:100%;height:100%;border:0;display:block;background:var(--panel)}
   <button class="tab" data-key="threads" data-url="https://pxnulishandal.vercel.app">Threads</button>
   <button class="tab" data-key="kalendre" data-url="https://kalendre.vercel.app">Kalendre</button>
   <button class="tab" data-key="notion" data-url="https://notionlo.vercel.app">Notion</button>
+  <button class="tab" data-key="pxnulis" data-url="https://pxnulis.vercel.app" data-gate="true">Pxnulis</button>
   <a class="openext" id="openExt" href="#" target="_blank" rel="noopener">
     <span class="label-text">Open in new tab</span> ↗
   </a>
-</div>
-
-<div class="credbar" id="credBar">
-  Login for Threads — ID: <b>bongkar</b>
-  <button class="copy" data-copy="bongkar">Copy ID</button>
-  · Password: <b>bongkar</b>
-  <button class="copy" data-copy="bongkar">Copy password</button>
 </div>
 
 <div class="frame-wrap" id="frameWrap">
@@ -119,49 +111,69 @@ iframe{width:100%;height:100%;border:0;display:block;background:var(--panel)}
 <script>
 const tabs = document.querySelectorAll('.tab');
 const frameWrap = document.getElementById('frameWrap');
-const credBar = document.getElementById('credBar');
 const openExt = document.getElementById('openExt');
-let iframe = null;
 
-function toast(msg){
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gold2);color:#271809;padding:10px 16px;border-radius:10px;font-weight:700;font-size:12px;z-index:20;box-shadow:var(--shadow)';
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 1600);
+const unlocked = new Set();
+try {
+  tabs.forEach(t => {
+    if (t.dataset.gate === 'true' && sessionStorage.getItem('unlocked_' + t.dataset.key)) {
+      unlocked.add(t.dataset.key);
+    }
+  });
+} catch {}
+
+function renderFrame(url){
+  frameWrap.innerHTML = '';
+  const f = document.createElement('iframe');
+  f.src = url;
+  f.referrerPolicy = 'no-referrer';
+  frameWrap.appendChild(f);
+}
+
+function renderGate(key, url){
+  frameWrap.innerHTML =
+    '<div class="gate">' +
+      '<h2>Locked</h2>' +
+      '<p>Enter the ID and password to open this link.</p>' +
+      '<form id="gateForm">' +
+        '<input type="text" id="gateId" placeholder="ID" autocomplete="off">' +
+        '<input type="password" id="gatePass" placeholder="Password" autocomplete="off">' +
+        '<button type="submit" class="unlock">Unlock</button>' +
+        '<div class="err" id="gateErr"></div>' +
+      '</form>' +
+    '</div>';
+  document.getElementById('gateForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const id = document.getElementById('gateId').value.trim();
+    const pass = document.getElementById('gatePass').value;
+    if (id === 'bongkar' && pass === 'bongkar') {
+      unlocked.add(key);
+      try { sessionStorage.setItem('unlocked_' + key, '1'); } catch {}
+      renderFrame(url);
+    } else {
+      document.getElementById('gateErr').textContent = 'Incorrect ID or password.';
+    }
+  });
 }
 
 function selectTab(btn){
   tabs.forEach(t => t.classList.toggle('active', t === btn));
   const url = btn.dataset.url;
-  const isThreads = btn.dataset.key === 'threads';
-
-  credBar.classList.toggle('show', isThreads);
-  frameWrap.classList.toggle('has-cred', isThreads);
+  const key = btn.dataset.key;
+  const needsGate = btn.dataset.gate === 'true';
 
   openExt.href = url;
 
-  frameWrap.innerHTML = '';
-  iframe = document.createElement('iframe');
-  iframe.src = url;
-  iframe.referrerPolicy = 'no-referrer';
-  frameWrap.appendChild(iframe);
+  if (needsGate && !unlocked.has(key)) {
+    renderGate(key, url);
+  } else {
+    renderFrame(url);
+  }
 }
 
 tabs.forEach(btn => btn.addEventListener('click', () => selectTab(btn)));
 
-selectTab(document.querySelector('.tab[data-key="threads"]'));
-
-document.querySelectorAll('.copy').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(btn.dataset.copy);
-      toast('Copied');
-    } catch {
-      toast('Could not copy — select the text manually');
-    }
-  });
-});
+selectTab(document.querySelector('.tab[data-key="pxnulis"]'));
 </script>
 
 </body>
