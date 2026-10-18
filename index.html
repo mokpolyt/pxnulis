@@ -59,18 +59,6 @@ button{cursor:pointer;border:0;font:inherit}
 .openext:hover{color:var(--cream);border-color:var(--gold)}
 
 .frame-wrap{height:calc(100vh - 68px);width:100%}
-
-.gate{
-  height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:14px;padding:20px;text-align:center;
-}
-.gate h2{margin:0;color:var(--cream);font-size:20px;font-weight:650}
-.gate p{margin:0;color:var(--muted);font-size:13px;max-width:300px}
-.gate form{display:flex;flex-direction:column;gap:10px;width:100%;max-width:260px}
-.gate input{padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--cream);outline:none;font-size:14px}
-.gate input:focus{border-color:var(--gold)}
-.gate .unlock{padding:11px 13px;border-radius:10px;background:linear-gradient(130deg,var(--gold2),var(--gold));color:#271809;font-weight:750}
-.gate .err{color:#f18b71;font-size:12px;min-height:16px}
 iframe{width:100%;height:100%;border:0;display:block;background:var(--panel)}
 
 .placeholder{
@@ -91,11 +79,11 @@ iframe{width:100%;height:100%;border:0;display:block;background:var(--panel)}
 
 <div class="topnav">
   <span class="label">LINKS</span>
+  <button class="tab" data-key="pxnulis" data-url="https://pxnulis.vercel.app">Home</button>
   <button class="tab" data-key="google" data-url="https://akungoog.vercel.app">Password Google</button>
   <button class="tab" data-key="threads" data-url="https://pxnulishandal.vercel.app">Threads</button>
   <button class="tab" data-key="kalendre" data-url="https://kalendre.vercel.app">Kalendre</button>
   <button class="tab" data-key="notion" data-url="https://notionlo.vercel.app">Notion</button>
-  <button class="tab" data-key="pxnulis" data-url="https://pxnulis.vercel.app" data-gate="true">Pxnulis</button>
   <a class="openext" id="openExt" href="#" target="_blank" rel="noopener">
     <span class="label-text">Open in new tab</span> ↗
   </a>
@@ -113,15 +101,6 @@ const tabs = document.querySelectorAll('.tab');
 const frameWrap = document.getElementById('frameWrap');
 const openExt = document.getElementById('openExt');
 
-const unlocked = new Set();
-try {
-  tabs.forEach(t => {
-    if (t.dataset.gate === 'true' && sessionStorage.getItem('unlocked_' + t.dataset.key)) {
-      unlocked.add(t.dataset.key);
-    }
-  });
-} catch {}
-
 function renderFrame(url){
   frameWrap.innerHTML = '';
   const f = document.createElement('iframe');
@@ -130,45 +109,11 @@ function renderFrame(url){
   frameWrap.appendChild(f);
 }
 
-function renderGate(key, url){
-  frameWrap.innerHTML =
-    '<div class="gate">' +
-      '<h2>Locked</h2>' +
-      '<p>Enter the ID and password to open this link.</p>' +
-      '<form id="gateForm">' +
-        '<input type="text" id="gateId" placeholder="ID" autocomplete="off">' +
-        '<input type="password" id="gatePass" placeholder="Password" autocomplete="off">' +
-        '<button type="submit" class="unlock">Unlock</button>' +
-        '<div class="err" id="gateErr"></div>' +
-      '</form>' +
-    '</div>';
-  document.getElementById('gateForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const id = document.getElementById('gateId').value.trim();
-    const pass = document.getElementById('gatePass').value;
-    if (id === 'bongkar' && pass === 'bongkar') {
-      unlocked.add(key);
-      try { sessionStorage.setItem('unlocked_' + key, '1'); } catch {}
-      renderFrame(url);
-    } else {
-      document.getElementById('gateErr').textContent = 'Incorrect ID or password.';
-    }
-  });
-}
-
 function selectTab(btn){
   tabs.forEach(t => t.classList.toggle('active', t === btn));
   const url = btn.dataset.url;
-  const key = btn.dataset.key;
-  const needsGate = btn.dataset.gate === 'true';
-
   openExt.href = url;
-
-  if (needsGate && !unlocked.has(key)) {
-    renderGate(key, url);
-  } else {
-    renderFrame(url);
-  }
+  renderFrame(url);
 }
 
 tabs.forEach(btn => btn.addEventListener('click', () => selectTab(btn)));
